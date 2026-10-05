@@ -91,7 +91,7 @@ export class Context {
         throw new InternalUndefinedVariableError((paths as string[]).slice(0, i + 1).join!('.'))
       }
     }
-    return scope
+    return toLiquid(scope)
   }
   public push (ctx: object) {
     return this.scopes.push(ctx)
@@ -106,7 +106,8 @@ export class Context {
     return new Context(scope, this.opts, {
       sync: this.sync,
       globals: this.globals,
-      strictVariables: this.strictVariables
+      strictVariables: this.strictVariables,
+      ownPropertyOnly: this.ownPropertyOnly
     }, {
       renderLimit: this.renderLimit,
       memoryLimit: this.memoryLimit
@@ -117,7 +118,11 @@ export class Context {
       const candidate = this.scopes[i]
       if (key in candidate) return candidate
     }
-    if (key in this.environments) return this.environments
+    if (key in this.environments ||
+      this.environments instanceof Drop ||
+      (this.environments && isFunction(this.environments.toLiquid) && key in toLiquid(this.environments))) {
+      return this.environments
+    }
     return this.globals
   }
   readProperty (obj: Scope, key: (PropertyKey | Drop)) {

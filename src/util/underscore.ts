@@ -39,7 +39,7 @@ export function promisify (fn: any) {
 }
 
 export function stringify (value: any): string {
-  value = toValue(value)
+  value = toLiquidValue(toValue(value))
   if (isString(value)) return value
   if (isNil(value)) return ''
   if (isArray(value)) return value.map(x => stringify(x)).join('')
@@ -47,16 +47,16 @@ export function stringify (value: any): string {
 }
 
 export function toEnumerable<T = unknown> (val: any): T[] {
-  val = toValue(val)
-  if (isArray(val)) return val
+  val = toLiquidValue(toValue(val))
+  if (isArray(val)) return val as unknown as T[]
   if (isString(val) && val.length > 0) return [val] as unknown as T[]
-  if (isIterable(val)) return Array.from(val)
+  if (isIterable(val)) return Array.from(val).map(toLiquid) as unknown as T[]
   if (isObject(val)) return Object.keys(val).map((key) => [key, val[key]]) as unknown as T[]
   return []
 }
 
 export function toArray (val: any) {
-  val = toValue(val)
+  val = toLiquidValue(toValue(val))
   if (isNil(val)) return []
   if (isArray(val)) return val
   return [ val ]
@@ -76,6 +76,15 @@ export function isNumber (value: any): value is number {
 
 export function toLiquid (value: any): any {
   if (value && isFunction(value.toLiquid)) return toLiquid(value.toLiquid())
+  return value
+}
+
+export function toLiquidValue (value: any): any {
+  value = toLiquid(value)
+  if (isArray(value)) {
+    const converted = value.map(toLiquid)
+    return converted.some((item, index) => item !== value[index]) ? converted : value
+  }
   return value
 }
 

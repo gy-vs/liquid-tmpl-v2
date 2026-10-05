@@ -1,6 +1,6 @@
 import { isComparable } from '../drop/comparable'
 import { Context } from '../context'
-import { toValue } from '../util'
+import { toLiquidValue, toValue } from '../util'
 import { isFalsy, isTruthy } from '../render/boolean'
 import { isArray, isFunction } from '../util/underscore'
 
@@ -15,27 +15,27 @@ export const defaultOperators: Operators = {
   '>': (l: any, r: any) => {
     if (isComparable(l)) return l.gt(r)
     if (isComparable(r)) return r.lt(l)
-    return toValue(l) > toValue(r)
+    return toLiquidValue(toValue(l)) > toLiquidValue(toValue(r))
   },
   '<': (l: any, r: any) => {
     if (isComparable(l)) return l.lt(r)
     if (isComparable(r)) return r.gt(l)
-    return toValue(l) < toValue(r)
+    return toLiquidValue(toValue(l)) < toLiquidValue(toValue(r))
   },
   '>=': (l: any, r: any) => {
     if (isComparable(l)) return l.geq(r)
     if (isComparable(r)) return r.leq(l)
-    return toValue(l) >= toValue(r)
+    return toLiquidValue(toValue(l)) >= toLiquidValue(toValue(r))
   },
   '<=': (l: any, r: any) => {
     if (isComparable(l)) return l.leq(r)
     if (isComparable(r)) return r.geq(l)
-    return toValue(l) <= toValue(r)
+    return toLiquidValue(toValue(l)) <= toLiquidValue(toValue(r))
   },
   'contains': (l: any, r: any) => {
-    l = toValue(l)
+    l = toLiquidValue(toValue(l))
     if (isArray(l)) return l.some((i) => equals(i, r))
-    if (isFunction(l?.indexOf)) return l.indexOf(toValue(r)) > -1
+    if (isFunction(l?.indexOf)) return l.indexOf(toLiquidValue(toValue(r))) > -1
     return false
   },
   'not': (v: any, ctx: Context) => isFalsy(toValue(v), ctx),
@@ -46,8 +46,8 @@ export const defaultOperators: Operators = {
 export function equals (lhs: any, rhs: any): boolean {
   if (isComparable(lhs)) return lhs.equals(rhs)
   if (isComparable(rhs)) return rhs.equals(lhs)
-  lhs = toValue(lhs)
-  rhs = toValue(rhs)
+  lhs = toLiquidValue(toValue(lhs))
+  rhs = toLiquidValue(toValue(rhs))
   if (isArray(lhs)) {
     return isArray(rhs) && arrayEquals(lhs, rhs)
   }
