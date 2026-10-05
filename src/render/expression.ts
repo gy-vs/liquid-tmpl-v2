@@ -1,4 +1,4 @@
-import { QuotedToken, RangeToken, OperatorToken, Token, PropertyAccessToken, OperatorType, operatorTypes } from '../tokens'
+import { QuotedToken, RangeToken, OperatorToken, Token, PropertyAccessToken, OperatorType, operatorTypes, ValueToken } from '../tokens'
 import { isRangeToken, isPropertyAccessToken, UndefinedVariableError, range, isOperatorToken, assert } from '../util'
 import type { Context } from '../context'
 import type { UnaryOperatorHandler } from '../render'
@@ -40,6 +40,21 @@ export function * evalToken (token: Token | undefined, ctx: Context, lenient = f
   if ('content' in token) return token.content
   if (isPropertyAccessToken(token)) return yield evalPropertyAccessToken(token, ctx, lenient)
   if (isRangeToken(token)) return yield evalRangeToken(token, ctx)
+}
+
+/**
+ * Evaluate a scope-relative property token (as read by `readScopeValue()`)
+ * against an explicit scope value, e.g. an array element.
+ * This shares the same property resolution rules (toLiquid, liquidMethodMissing,
+ * ownPropertyOnly) as dot access in templates.
+ */
+export function * evalScopeProperty (token: ValueToken | undefined, scope: any, ctx: Context): IterableIterator<unknown> {
+  if (!isPropertyAccessToken(token)) return
+  const props: (string | number | Drop)[] = []
+  for (const prop of token.props) {
+    props.push((yield evalToken(prop, ctx, false)) as unknown as string | number | Drop)
+  }
+  return yield ctx._getFromScope(scope, props, false)
 }
 
 function * evalPropertyAccessToken (token: PropertyAccessToken, ctx: Context, lenient: boolean): IterableIterator<unknown> {

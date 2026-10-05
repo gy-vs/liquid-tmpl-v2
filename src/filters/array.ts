@@ -1,5 +1,5 @@
 import { toArray, argumentsToValue, toValue, stringify, caseInsensitiveCompare, isArray, isNil, last as arrayLast, isArrayLike, toEnumerable } from '../util'
-import { arrayIncludes, equals, evalToken, isTruthy } from '../render'
+import { arrayIncludes, equals, evalScopeProperty, isTruthy } from '../render'
 import { Value, FilterImpl } from '../template'
 import { Tokenizer } from '../parser'
 import type { Scope } from '../context'
@@ -127,13 +127,17 @@ function expectedMatcher (this: FilterImpl, expected: any): (v: any) => boolean 
   }
 }
 
+function readScopeToken (property: string) {
+  return new Tokenizer(stringify(property)).readScopeValue()
+}
+
 function * filter<T extends object> (this: FilterImpl, include: boolean, arr: T[], property: string, expected: any): IterableIterator<unknown> {
   const values: unknown[] = []
   arr = toArray(arr)
   this.context.memoryLimit.use(arr.length)
-  const token = new Tokenizer(stringify(property)).readScopeValue()
+  const token = readScopeToken(property)
   for (const item of arr) {
-    values.push(yield evalToken(token, this.context.spawn(item)))
+    values.push(yield evalScopeProperty(token, item, this.context))
   }
   const matcher = expectedMatcher.call(this, expected)
   return arr.filter((_, i) => matcher(values[i]) === include)
@@ -172,10 +176,10 @@ export function * reject_exp<T extends object> (this: FilterImpl, arr: T[], item
 export function * group_by<T extends object> (this: FilterImpl, arr: T[], property: string): IterableIterator<unknown> {
   const map = new Map()
   arr = toEnumerable(arr)
-  const token = new Tokenizer(stringify(property)).readScopeValue()
+  const token = readScopeToken(property)
   this.context.memoryLimit.use(arr.length)
   for (const item of arr) {
-    const key = yield evalToken(token, this.context.spawn(item))
+    const key = yield evalScopeProperty(token, item, this.context)
     if (!map.has(key)) map.set(key, [])
     map.get(key).push(item)
   }
@@ -198,11 +202,11 @@ export function * group_by_exp<T extends object> (this: FilterImpl, arr: T[], it
 }
 
 function * search<T extends object> (this: FilterImpl, arr: T[], property: string, expected: string): IterableIterator<unknown> {
-  const token = new Tokenizer(stringify(property)).readScopeValue()
+  const token = readScopeToken(property)
   const array = toArray(arr)
   const matcher = expectedMatcher.call(this, expected)
   for (let index = 0; index < array.length; index++) {
-    const value = yield evalToken(token, this.context.spawn(array[index]))
+    const value = yield evalScopeProperty(token, array[index], this.context)
     if (matcher(value)) return [index, array[index]]
   }
 }

@@ -91,7 +91,7 @@ export class Context {
         throw new InternalUndefinedVariableError((paths as string[]).slice(0, i + 1).join!('.'))
       }
     }
-    return scope
+    return toLiquid(scope)
   }
   public push (ctx: object) {
     return this.scopes.push(ctx)
